@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cover Maker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;1,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e0e;
+      --surface: #161616;
+      --surface2: #1e1e1e;
+      --border: rgba(255,255,255,0.08);
+      --border-mid: rgba(255,255,255,0.14);
+      --text: #f0ede8;
+      --text-muted: rgba(240,237,232,0.45);
+      --text-dim: rgba(240,237,232,0.25);
+      --accent: #c8b89a;
+      --accent-dim: rgba(200,184,154,0.15);
+      --red: #e05c5c;
+      --radius: 6px;
+      --radius-lg: 10px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      padding: 28px 40px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    header h1 {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-style: italic;
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+    }
+
+    header p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ── Layout ── */
+    main {
+      display: grid;
+      grid-template-columns: 300px 1fr;
+      gap: 0;
+      min-height: calc(100vh - 65px);
+    }
+
+    /* ── Sidebar ── */
+    aside {
+      border-right: 1px solid var(--border);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      overflow-y: auto;
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    input[type=text] {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      padding: 8px 10px;
+      width: 100%;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+    input[type=text]:focus { border-color: var(--border-mid); }
+    input[type=text].error { border-color: var(--red); }
+
+    .hex-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hex-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      border: 1px solid var(--border-mid);
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .hex-row input {
+      flex: 1;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Font buttons */
+    .btn-group {
+      display: flex;
+      gap: 6px;
+    }
+    .btn {
+      flex: 1;
+      padding: 7px 6px;
+      font-family: inherit;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .btn:hover { border-color: var(--border-mid); color: var(--text); }
+    .btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    /* Pos buttons */
+    .pos-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    .pos-btn {
+      padding: 5px 10px;
+      font-family: inherit;
+      font-size: 11px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: transparent;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pos-btn:hover { border-color: var(--border-mid); color: var(--text); }
+    .pos-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 1px dashed var(--border-mid);
+      border-radius: var(--radius-lg);
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 12px;
+      transition: all 0.15s;
+      background: var(--surface2);
+      line-height: 1.6;
+    }
+    .drop-zone:hover, .drop-zone.dragging {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+    .drop-zone.has-file {
+      border-style: solid;
+      border-color: var(--border-mid);
+      color: var(--text);
+    }
+
+    /* Slider */
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    input[type=range] {
+      flex: 1;
+      -webkit-appearance: none;
+      height: 3px;
+      background: var(--border-mid);
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+    }
+    .slider-val {
+      font-size: 11px;
+      color: var(--text-muted);
+      min-width: 28px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 4px 0;
+    }
+
+    /* Download button */
+    .dl-btn {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: #0e0e0e;
+      border: none;
+      border-radius: var(--radius);
+      font-family: 'DM Serif Display', serif;
+      font-style: italic;
+      font-size: 15px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      letter-spacing: 0.01em;
+    }
+    .dl-btn:hover { opacity: 0.88; }
+    .dl-btn:active { opacity: 0.75; }
+
+    /* ── Canvas area ── */
+    .canvas-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      gap: 12px;
+      background:
+        radial-gradient(ellipse 60% 50% at 70% 40%, rgba(200,184,154,0.04) 0%, transparent 70%),
+        var(--bg);
+    }
+
+    canvas {
+      border-radius: 4px;
+      box-shadow: 0 8px 60px rgba(0,0,0,0.7), 0 2px 12px rgba(0,0,0,0.5);
+      max-width: min(500px, calc(100vw - 360px));
+      max-height: calc(100vh - 140px);
+      width: auto;
+      height: auto;
+      display: block;
+    }
+
+    .canvas-meta {
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 720px) {
+      header { padding: 20px; }
+      main { grid-template-columns: 1fr; }
+      aside { border-right: none; border-bottom: 1px solid var(--border); }
+      .canvas-area { padding: 24px 16px; }
+      canvas { max-width: 100%; max-height: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Cover Maker</h1>
+  <p>Create album artwork in seconds</p>
+</header>
+
+<main>
+  <aside>
+
+    <div>
+      <p class="section-label">Image</p>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
+        Click to upload<br>or drag &amp; drop a photo
+      </div>
+      <input type="file" id="fileIn" accept="image/*" style="display:none">
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <p class="section-label">Text</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="field">
+          <label>Title</label>
+          <input type="text" id="titleIn" value="Album Title" oninput="render()">
+        </div>
+        <div class="field">
+          <label>Artist</label>
+          <input type="text" id="artistIn" value="Artist Name" oninput="render()">
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="section-label">Font</p>
+      <div class="btn-group">
+        <button class="btn active" onclick="setFont('serif',this)">Serif</button>
+        <button class="btn" onclick="setFont('sans',this)">Sans</button>
+        <button class="btn" onclick="setFont('mono',this)">Mono</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <p class="section-label">Layout</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="field">
+          <label>Title position</label>
+          <div class="pos-group" id="titlePos">
+            <button class="pos-btn active" data-v="top" onclick="setPos('title',this)">Top</button>
+            <button class="pos-btn" data-v="bottom" onclick="setPos('title',this)">Bottom</button>
+            <button class="pos-btn" data-v="inside-top" onclick="setPos('title',this)">Inside top</button>
+            <button class="pos-btn" data-v="inside-bottom" onclick="setPos('title',this)">Inside bottom</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Artist position</label>
+          <div class="pos-group" id="artistPos">
+            <button class="pos-btn active" data-v="right" onclick="setPos('artist',this)">Right</button>
+            <button class="pos-btn" data-v="left" onclick="setPos('artist',this)">Left</button>
+            <button class="pos-btn" data-v="inside-left" onclick="setPos('artist',this)">Inside left</button>
+            <button class="pos-btn" data-v="inside-right" onclick="setPos('artist',this)">Inside right</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <p class="section-label">Colour</p>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="field">
+          <label>Background</label>
+          <div class="hex-row">
+            <div class="hex-swatch" id="bgSwatch" style="background:#1a1a1a"></div>
+            <input type="text" id="bgCol" value="#1a1a1a" placeholder="#1a1a1a" oninput="onHex('bg')">
+          </div>
+        </div>
+        <div class="field">
+          <label>Font</label>
+          <div class="hex-row">
+            <div class="hex-swatch" id="fgSwatch" style="background:#ffffff;border-color:rgba(255,255,255,0.3)"></div>
+            <input type="text" id="fgCol" value="#ffffff" placeholder="#ffffff" oninput="onHex('fg')">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <p class="section-label">Border</p>
+      <div class="slider-row">
+        <input type="range" min="0" max="20" value="6" id="borderSz" oninput="document.getElementById('borderVal').textContent=this.value+'px'; render()">
+        <span class="slider-val" id="borderVal">6px</span>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <button class="dl-btn" onclick="download()">Download cover</button>
+
+  </aside>
+
+  <div class="canvas-area">
+    <canvas id="cv" width="500" height="500"></canvas>
+    <span class="canvas-meta">500 × 500 px · PNG</span>
+  </div>
+</main>
+
+<script>
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+  let img = null;
+  let titlePos = 'top';
+  let artistPos = 'right';
+  let fontStyle = 'serif';
+  const SZ = 500;
+  const IMG_MARGIN = 64;
+  const FRAME_PAD = 16;
+  const TEXT_INNER_PAD = 10;
+
+  function isValidHex(h) {
+    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(h);
+  }
+
+  function onHex(which) {
+    const input = document.getElementById(which + 'Col');
+    const swatch = document.getElementById(which + 'Swatch');
+    let val = input.value.trim();
+    if (!val.startsWith('#')) val = '#' + val;
+    if (isValidHex(val)) {
+      swatch.style.background = val;
+      input.classList.remove('error');
+      render();
+    } else {
+      input.classList.add('error');
+    }
+  }
+
+  function getColor(which) {
+    const val = document.getElementById(which + 'Col').value.trim();
+    const norm = val.startsWith('#') ? val : '#' + val;
+    return isValidHex(norm) ? norm : (which === 'bg' ? '#1a1a1a' : '#ffffff');
+  }
+
+  function fontString(sz) {
+    if (fontStyle === 'serif') return `italic 500 ${sz}px 'DM Serif Display', Georgia, serif`;
+    if (fontStyle === 'sans')  return `500 ${sz}px 'DM Sans', system-ui, sans-serif`;
+    return `500 ${sz}px 'Courier New', monospace`;
+  }
+
+  function fitFontSize(text, maxW, maxH, isVertical) {
+    let lo = 8, hi = Math.min(isVertical ? maxW : maxH, 200);
+    for (let i = 0; i < 20; i++) {
+      const mid = (lo + hi) / 2;
+      ctx.font = fontString(mid);
+      const tw = ctx.measureText(text).width;
+      const th = mid * 1.1;
+      const fits = isVertical ? (tw <= maxH && th <= maxW) : (tw <= maxW && th <= maxH);
+      if (fits) lo = mid; else hi = mid;
+    }
+    return Math.floor(lo);
+  }
+
+  function setFont(style, btn) {
+    fontStyle = style;
+    document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  }
+
+  function setPos(which, btn) {
+    document.getElementById(which + 'Pos').querySelectorAll('.pos-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (which === 'title') titlePos = btn.dataset.v;
+    else artistPos = btn.dataset.v;
+    render();
+  }
+
+  function render() {
+    const bg = getColor('bg');
+    const fg = getColor('fg');
+    const title = document.getElementById('titleIn').value;
+    const artist = document.getElementById('artistIn').value;
+    const border = parseInt(document.getElementById('borderSz').value);
+
+    ctx.clearRect(0, 0, SZ, SZ);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, SZ, SZ);
+
+    const titleZoneH = (titlePos === 'top' || titlePos === 'bottom') ? IMG_MARGIN : 0;
+    const artistZoneW = (artistPos === 'left' || artistPos === 'right') ? IMG_MARGIN : 0;
+
+    let fx = artistPos === 'left' ? artistZoneW : 0;
+    let fy = titlePos === 'top' ? titleZoneH : 0;
+    let fw = SZ - artistZoneW;
+    let fh = SZ - titleZoneH;
+    if (titlePos.startsWith('inside')) { fy = 0; fh = SZ; }
+    if (artistPos.startsWith('inside')) { fx = 0; fw = SZ; }
+
+    const frameX = fx + FRAME_PAD;
+    const frameY = fy + FRAME_PAD;
+    const frameW = fw - FRAME_PAD * 2;
+    const frameH = fh - FRAME_PAD * 2;
+    const imgX = frameX + border;
+    const imgY = frameY + border;
+    const imgW = frameW - border * 2;
+    const imgH = frameH - border * 2;
+
+    if (border > 0) { ctx.fillStyle = '#ffffff'; ctx.fillRect(frameX, frameY, frameW, frameH); }
+
+    if (img) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(imgX, imgY, imgW, imgH);
+      ctx.clip();
+      const aspect = img.naturalWidth / img.naturalHeight;
+      let dw = imgW, dh = imgW / aspect;
+      if (dh < imgH) { dh = imgH; dw = imgH * aspect; }
+      ctx.drawImage(img, imgX + (imgW - dw) / 2, imgY + (imgH - dh) / 2, dw, dh);
+      ctx.restore();
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillRect(imgX, imgY, imgW, imgH);
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(imgX + 0.5, imgY + 0.5, imgW - 1, imgH - 1);
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.font = '16px DM Sans, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('upload an image', imgX + imgW / 2, imgY + imgH / 2);
+    }
+
+    ctx.fillStyle = fg;
+
+    // Title
+    let titleAreaX, titleAreaY, titleAreaW, titleAreaH;
+    if (titlePos === 'top') {
+      titleAreaX = artistZoneW + TEXT_INNER_PAD; titleAreaY = 0;
+      titleAreaW = SZ - artistZoneW - TEXT_INNER_PAD * 2; titleAreaH = titleZoneH;
+    } else if (titlePos === 'bottom') {
+      titleAreaX = artistZoneW + TEXT_INNER_PAD; titleAreaY = SZ - titleZoneH;
+      titleAreaW = SZ - artistZoneW - TEXT_INNER_PAD * 2; titleAreaH = titleZoneH;
+    } else if (titlePos === 'inside-top') {
+      titleAreaX = frameX + border + TEXT_INNER_PAD; titleAreaY = imgY;
+      titleAreaW = imgW - TEXT_INNER_PAD * 2; titleAreaH = imgH * 0.25;
+    } else {
+      titleAreaX = frameX + border + TEXT_INNER_PAD; titleAreaY = imgY + imgH * 0.75;
+      titleAreaW = imgW - TEXT_INNER_PAD * 2; titleAreaH = imgH * 0.25;
+    }
+
+    const titleFs = fitFontSize(title, titleAreaW, titleAreaH - TEXT_INNER_PAD * 2, false);
+    ctx.font = fontString(titleFs);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(title, titleAreaX, titleAreaY + titleAreaH / 2);
+
+    // Artist
+    let artistAreaW, artistAreaH, artistCX, artistCY;
+    if (artistPos === 'right') {
+      artistAreaW = artistZoneW; artistAreaH = SZ - titleZoneH;
+      artistCX = SZ - artistZoneW / 2; artistCY = titleZoneH + artistAreaH / 2;
+    } else if (artistPos === 'left') {
+      artistAreaW = artistZoneW; artistAreaH = SZ - titleZoneH;
+      artistCX = artistZoneW / 2; artistCY = titleZoneH + artistAreaH / 2;
+    } else if (artistPos === 'inside-right') {
+      artistAreaW = imgH * 0.15; artistAreaH = imgH;
+      artistCX = imgX + imgW - artistAreaW / 2; artistCY = imgY + imgH / 2;
+    } else {
+      artistAreaW = imgH * 0.15; artistAreaH = imgH;
+      artistCX = imgX + artistAreaW / 2; artistCY = imgY + imgH / 2;
+    }
+
+    const artistFs = fitFontSize(artist, artistAreaW - TEXT_INNER_PAD * 2, artistAreaH - TEXT_INNER_PAD * 2, true);
+    ctx.save();
+    ctx.translate(artistCX, artistCY);
+    ctx.rotate((artistPos === 'left' || artistPos === 'inside-left') ? Math.PI / 2 : -Math.PI / 2);
+    ctx.font = fontString(artistFs);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = fg;
+    ctx.fillText(artist, 0, 0);
+    ctx.restore();
+  }
+
+  function download() {
+    const title = document.getElementById('titleIn').value.trim() || 'cover';
+    const a = document.createElement('a');
+    a.download = title.toLowerCase().replace(/\s+/g, '-') + '.png';
+    a.href = cv.toDataURL('image/png');
+    a.click();
+  }
+
+  document.getElementById('fileIn').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const i = new Image();
+    i.onload = () => { img = i; render(); };
+    i.src = URL.createObjectURL(f);
+    const dz = document.getElementById('dropZone');
+    dz.textContent = f.name;
+    dz.classList.add('has-file');
+  });
+
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragging'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragging'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragging');
+    const f = e.dataTransfer.files[0]; if (!f || !f.type.startsWith('image/')) return;
+    const i = new Image();
+    i.onload = () => { img = i; render(); };
+    i.src = URL.createObjectURL(f);
+    dz.textContent = f.name;
+    dz.classList.add('has-file');
+  });
+
+  render();
+</script>
+</body>
+</html>
