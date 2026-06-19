@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cover Maker</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0e0e0e;
+      --surface: #1a1a1a;
+      --border: rgba(255,255,255,0.08);
+      --border-mid: rgba(255,255,255,0.15);
+      --text: #f0ede8;
+      --muted: rgba(240,237,232,0.45);
+      --dim: rgba(240,237,232,0.25);
+      --accent: #c8b89a;
+      --accent-dim: rgba(200,184,154,0.12);
+      --red: #e05c5c;
+      --r: 6px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    header {
+      padding: 24px 36px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+    header h1 { font-size: 20px; font-weight: 500; color: var(--accent); }
+    header p  { font-size: 12px; color: var(--muted); }
+
+    .layout {
+      display: flex;
+      height: calc(100vh - 61px);
+    }
+
+    /* ── Sidebar ── */
+    aside {
+      width: 280px;
+      flex-shrink: 0;
+      border-right: 1px solid var(--border);
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .label {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--dim);
+      margin-bottom: 8px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field > span { font-size: 12px; color: var(--muted); }
+
+    input[type=text] {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      padding: 8px 10px;
+      width: 100%;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input[type=text]:focus { border-color: var(--border-mid); }
+    input[type=text].err   { border-color: var(--red); }
+
+    .hex-row { display: flex; align-items: center; gap: 8px; }
+    .swatch  { width: 26px; height: 26px; border-radius: 4px; border: 1px solid var(--border-mid); flex-shrink: 0; }
+    .hex-row input { flex: 1; font-family: 'Courier New', monospace; font-size: 12px; letter-spacing: .05em; }
+
+    input[type=range] {
+      width: 100%; -webkit-appearance: none;
+      height: 3px; background: var(--border-mid);
+      border-radius: 2px; outline: none; cursor: pointer;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      border-radius: 50%; background: var(--accent); cursor: pointer;
+    }
+    .range-row { display: flex; align-items: center; gap: 10px; }
+    .range-val { font-size: 11px; color: var(--muted); min-width: 26px; text-align: right; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 2px 0; }
+
+    .dl {
+      width: 100%; padding: 10px;
+      background: var(--accent); color: #0e0e0e;
+      border: none; border-radius: var(--r);
+      font-family: inherit; font-size: 14px; font-weight: 500;
+      cursor: pointer; transition: opacity .15s;
+    }
+    .dl:hover { opacity: .85; }
+
+    /* ── Preview area ── */
+    .preview {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+      background: #0a0a0a;
+      overflow: hidden;
+    }
+
+    .preview-inner {
+      /* as large as possible within padding, capped at 500px */
+      width:  min(calc(100vw - 280px - 80px), calc(100vh - 61px - 80px), 500px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* padding-bottom % is always % of WIDTH — so this is always a perfect square */
+    .square-host {
+      width: 100%;
+      height: 0;
+      padding-bottom: 100%;
+      position: relative;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      border-radius: 4px;
+      box-shadow: 0 8px 48px rgba(0,0,0,.8);
+      display: block;
+    }
+
+    .meta { font-size: 11px; color: var(--dim); margin-top: 10px; text-align: center; }
+
+    .drop-zone {
+      border: 1px dashed var(--border-mid);
+      border-radius: 8px;
+      padding: 18px;
+      text-align: center;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+      background: var(--surface);
+      transition: all .15s;
+    }
+    .drop-zone:hover  { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+    .drop-zone.loaded { border-style: solid; border-color: var(--border-mid); color: var(--text); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Cover Maker</h1>
+  <p>Create album artwork in seconds</p>
+</header>
+
+<div class="layout">
+  <aside>
+
+    <div>
+      <p class="label">Image</p>
+      <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()">
+        Click to upload<br>or drag &amp; drop
+      </div>
+      <input type="file" id="fi" accept="image/*" style="display:none">
+    </div>
+
+    <hr>
+
+    <div>
+      <p class="label">Title</p>
+      <div class="field">
+        <input type="text" id="titleIn" value="Album Title" oninput="draw()">
+      </div>
+    </div>
+
+    <hr>
+
+    <div>
+      <p class="label">Colour</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="field">
+          <span>Background</span>
+          <div class="hex-row">
+            <div class="swatch" id="bgSw" style="background:#1a1a1a"></div>
+            <input type="text" id="bgCol" value="#1a1a1a" oninput="onHex('bg')">
+          </div>
+        </div>
+        <div class="field">
+          <span>Text &amp; border</span>
+          <div class="hex-row">
+            <div class="swatch" id="fgSw" style="background:#ffffff"></div>
+            <input type="text" id="fgCol" value="#ffffff" oninput="onHex('fg')">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr>
+
+    <div>
+      <p class="label">Border thickness</p>
+      <div class="range-row">
+        <input type="range" id="bdr" min="0" max="20" value="6"
+               oninput="document.getElementById('bdrVal').textContent=this.value+'px'; draw()">
+        <span class="range-val" id="bdrVal">6px</span>
+      </div>
+    </div>
+
+    <hr>
+
+    <button class="dl" onclick="download()">Download cover</button>
+
+  </aside>
+
+  <div class="preview">
+    <div class="preview-inner">
+      <div class="square-host">
+        <canvas id="cv" width="500" height="500"></canvas>
+      </div>
+      <p class="meta">500 × 500 px · PNG</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv  = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const SZ  = 500;
+const TITLE_H = 64;   // height of title band at top
+const PAD     = 14;   // padding inside title band / around image
+let uploadedImg = null;
+
+/* ── colour helpers ── */
+function validHex(h) { return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(h); }
+
+function onHex(which) {
+  const el = document.getElementById(which + 'Col');
+  const sw = document.getElementById(which + 'Sw');
+  let v = el.value.trim();
+  if (!v.startsWith('#')) v = '#' + v;
+  if (validHex(v)) { sw.style.background = v; el.classList.remove('err'); draw(); }
+  else el.classList.add('err');
+}
+
+function col(which) {
+  const v = document.getElementById(which + 'Col').value.trim();
+  const n = v.startsWith('#') ? v : '#' + v;
+  return validHex(n) ? n : (which === 'bg' ? '#1a1a1a' : '#ffffff');
+}
+
+/* ── fit font to width ── */
+function fitFont(text, maxW, maxH) {
+  let lo = 6, hi = maxH;
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2;
+    ctx.font = `500 ${mid}px 'DM Sans', sans-serif`;
+    (ctx.measureText(text).width <= maxW && mid <= maxH) ? (lo = mid) : (hi = mid);
+  }
+  return Math.floor(lo);
+}
+
+/* ── main draw ── */
+function draw() {
+  const bg     = col('bg');
+  const fg     = col('fg');
+  const title  = document.getElementById('titleIn').value;
+  const border = parseInt(document.getElementById('bdr').value);
+
+  /* background */
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, SZ, SZ);
+
+  /* image area: square, sits below title band */
+  const imgAreaSize = SZ - TITLE_H;            // e.g. 436
+  const imgAreaX    = (SZ - imgAreaSize) / 2;  // centred horizontally = 32
+  const imgAreaY    = TITLE_H;                 // starts after title band
+
+  /* border rect */
+  const frameX = imgAreaX + PAD;
+  const frameY = imgAreaY + PAD;
+  const frameS = imgAreaSize - PAD * 2;        // square side
+  if (border > 0) {
+    ctx.fillStyle = fg;
+    ctx.fillRect(frameX, frameY, frameS, frameS);
+  }
+
+  /* inner image */
+  const imgX = frameX + border;
+  const imgY = frameY + border;
+  const imgS = frameS - border * 2;
+
+  if (uploadedImg) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(imgX, imgY, imgS, imgS);
+    ctx.clip();
+    const a = uploadedImg.naturalWidth / uploadedImg.naturalHeight;
+    let dw = imgS, dh = imgS / a;
+    if (dh < imgS) { dh = imgS; dw = imgS * a; }
+    ctx.drawImage(uploadedImg, imgX + (imgS - dw) / 2, imgY + (imgS - dh) / 2, dw, dh);
+    ctx.restore();
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillRect(imgX, imgY, imgS, imgS);
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = '14px DM Sans, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('upload an image', imgX + imgS / 2, imgY + imgS / 2);
+  }
+
+  /* title — centred in the top band */
+  const titleFs = fitFont(title, SZ - PAD * 2, TITLE_H - PAD * 2);
+  ctx.font = `500 ${titleFs}px 'DM Sans', sans-serif`;
+  ctx.fillStyle = fg;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  // Centre in the full space above the image frame (title band + top frame padding)
+  ctx.fillText(title, SZ / 2, (imgAreaY + PAD) / 2);
+}
+
+/* ── download ── */
+function download() {
+  const name = (document.getElementById('titleIn').value.trim() || 'cover')
+    .toLowerCase().replace(/\s+/g, '-');
+  const a = document.createElement('a');
+  a.download = name + '.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+}
+
+/* ── file upload ── */
+function loadFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => { uploadedImg = img; draw(); };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  const dz = document.getElementById('dz');
+  dz.textContent = file.name;
+  dz.classList.add('loaded');
+}
+
+document.getElementById('fi').addEventListener('change', e => loadFile(e.target.files[0]));
+const dz = document.getElementById('dz');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.style.borderColor = 'var(--accent)'; });
+dz.addEventListener('dragleave', () => { dz.style.borderColor = ''; });
+dz.addEventListener('drop', e => { e.preventDefault(); dz.style.borderColor = ''; loadFile(e.dataTransfer.files[0]); });
+
+draw();
+</script>
+</body>
+</html>
